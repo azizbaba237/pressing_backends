@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Service de base de données MySQL
+  db:
+    image: mysql:8.0
+    container_name: pressing_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: pressing_db
+      MYSQL_USER: pressing_user
+      MYSQL_PASSWORD: pressing_pass_123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - pressing_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  # Service Backend Django
+  backend:
+    build: .
+    container_name: pressing_backend
+    restart: always
+    command: >
+      sh -c "
+      python manage.py makemigrations &&
+      python manage.py migrate &&
+      python manage.py collectstatic --noinput &&
+      gunicorn --bind 0.0.0.0:8000 --workers 3 pressing.wsgi:application
+      "
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=pressing_db
+      - MYSQL_USER=pressing_user
+      - MYSQL_PASSWORD=pressing_pass_123
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - pressing_network
+
+volumes:
+  mysql_data:
+  static_volume:
+  media_volume:
+
+networks:
+  pressing_network:
+    driver: bridge
