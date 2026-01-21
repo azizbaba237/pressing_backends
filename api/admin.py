@@ -30,7 +30,7 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_id', 'customer', 'deposit_date', 'promise_date', 'status', 'total_amount', 'amount_paid']
+    list_display = ['order_id', 'customer', 'deposit_date', 'due_date', 'status', 'total_amount', 'amount_paid']
     list_filter = ['status', 'deposit_date']
     search_fields = ['numero_commande', 'customer__first_name', 'customer__last_name']
     date_hierarchy = 'deposit_date'
@@ -39,7 +39,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['Order', 'amount', 'payment_mod', 'payment_date', 'user']
+    list_display = ['order', 'amount', 'payment_mod', 'payment_date', 'user']
     list_filter = ['payment_mod', 'payment_date']
     search_fields = ['order__order_id', 'reference']
     date_hierarchy = 'payment_date'
