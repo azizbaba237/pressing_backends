@@ -1,162 +1,327 @@
 from rest_framework import serializers
-#from django.contrib.auth.models import User
-from .models import *
 from django.utils import timezone
+from django.db import transaction
 import random
 import string
 
+from .models import (
+    User,
+    Customer,
+    CategoryServices,
+    Service,
+    Order,
+    OrderItem,
+    Payment
+)
+
+# ============================================================
+# UTILITY FUNCTIONS
+# ============================================================
+
+def generate_order_id():
+    """
+    Generate a unique order identifier.
+
+    Format example:
+    CMD-20260121-4829
+    """
+    date_part = timezone.now().strftime('%Y%m%d')
+    random_part = ''.join(random.choices(string.digits, k=4))
+    return f"CMD-{date_part}-{random_part}"
+
+
+# ============================================================
+# USER SERIALIZER
+# ============================================================
 
 class UserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Django User model.
+    Used mainly for READ operations.
+    """
+
     class Meta:
-        model            = User
-        fields           = ['id', 'username', 'email', 'first_name', 'last_name']
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name']
         read_only_fields = ['id']
 
+
+# ============================================================
+# CUSTOMER SERIALIZER
+# ============================================================
+
 class CustomerSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Customer model.
+    Adds a computed field for total orders.
+    """
+
     total_orders = serializers.SerializerMethodField()
 
     class Meta:
-        model            = Customer
-        fields           = '__all__'
+        model = Customer
+        fields = '__all__'
+        # inscription_date is automatically set by the system
         read_only_fields = ['inscription_date']
 
-    @staticmethod
-    def get_total_orders(obj) -> int:
+    def get_total_orders(self, obj):
+        """
+        Return the total number of orders made by this customer.
+        """
         return obj.orders.count()
 
-    @staticmethod
-    def validate_phone(value):
-        """Phone number validation"""
-        if not value.replace('+', '').replace(' ', '').isdigit():
-            raise serializers.ValidationError('Phone number must be entered in the format: +999999999')
+    def validate_phone(self, value):
+        """
+        Validate phone number format.
+
+        Accepted:
+        +237 690000000
+        690000000
+        """
+        cleaned_value = value.replace('+', '').replace(' ', '')
+        if not cleaned_value.isdigit():
+            raise serializers.ValidationError(
+                "Phone number must contain only digits and an optional '+' sign."
+            )
         return value
 
+
+# ============================================================
+# CATEGORY SERVICES SERIALIZER
+# ============================================================
+
 class CategoryServicesSerializer(serializers.ModelSerializer):
+    """
+    Serializer for service categories.
+    Adds the number of active services per category.
+    """
+
     service_count = serializers.SerializerMethodField()
 
     class Meta:
-        model  = CategoryServices
+        model = CategoryServices
         fields = '__all__'
 
-    @staticmethod
-    def get_service_count(obj):
-        return obj.services.filter(active=True).count()
+    def get_service_count(self, obj):
+        """
+        Return the number of active services in this category.
+        """
+        return obj.services.filter(actif=True).count()
+
+
+# ============================================================
+# SERVICE SERIALIZER
+# ============================================================
 
 class ServiceSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    """
+    Serializer for Service model.
+    Includes category name for display purposes.
+    """
+
+    category_name = serializers.CharField(
+        source='category.name',
+        read_only=True
+    )
 
     class Meta:
-        model  = Service
+        model = Service
         fields = '__all__'
 
-    @staticmethod
-    def validate_price(value):
-        if value <= 0 :
-            raise serializers.ValidationError('Price must be greater than 0')
+    def validate_price(self, value):
+        """
+        Ensure service price is strictly positive.
+        """
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Service price must be greater than zero."
+            )
         return value
+
+
+# ============================================================
+# ORDER ITEM SERIALIZERS
+# ============================================================
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    service_name = serializers.CharField(source='service.name', read_only=True)
-    service_detail = ServiceSerializer(source='service', read_only=True)
+    """
+    READ-ONLY serializer for OrderItem.
+    Used when displaying order details.
+    """
+
+    service_name = serializers.CharField(
+        source='service.name',
+        read_only=True
+    )
+
+    service_detail = ServiceSerializer(
+        source='service',
+        read_only=True
+    )
 
     class Meta:
-        model            = OrderItem
-        fields           = '__all__'
-        read_only_fields = ['total_price']
+        model = OrderItem
+        fields = '__all__'
+        # Prices are calculated by the backend
+        read_only_fields = ['unit_price', 'total_price']
 
-    @staticmethod
-    def quantity_validate(value):
-        if value < 1 :
-            raise serializers.ValidationError('Quantity must be greater than 1')
-        return value
+
+class OrderItemCreateSerializer(serializers.Serializer):
+    """
+    WRITE serializer for creating order items.
+    Used only during order creation.
+    """
+
+    service_id = serializers.IntegerField()
+    quantity = serializers.IntegerField(min_value=1)
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
+
+
+# ============================================================
+# PAYMENT SERIALIZER
+# ============================================================
 
 class PaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Payment model.
+    Displays user full name instead of raw user ID.
+    """
+
     user_name = serializers.SerializerMethodField()
 
     class Meta:
-        model            = Payment
-        fields           = '__all__'
+        model = Payment
+        fields = '__all__'
+        # payment_date is set automatically
         read_only_fields = ['payment_date']
 
-    @staticmethod
-    def get_user_name(obj):
+    def get_user_name(self, obj):
+        """
+        Return the full name of the user who processed the payment.
+        """
         if obj.user:
             return f"{obj.user.first_name} {obj.user.last_name}"
         return None
 
-class OrderSerializers(serializers.ModelSerializer):
-    customer_details = CustomerSerializer(source='customer', read_only=True)
-    items            = OrderItemSerializer(many=True, read_only=True)
-    payments         = PaymentSerializer(many=True, read_only=True)
-    user_name        = serializers.SerializerMethodField()
-    due_amount       = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    amount_paid      = serializers.BooleanField(read_only=True)
+
+# ============================================================
+# ORDER SERIALIZERS
+# ============================================================
+
+class OrderSerializer(serializers.ModelSerializer):
+    """
+    READ serializer for Order model.
+    Includes nested relationships for detailed display.
+    """
+
+    customer_details = CustomerSerializer(
+        source='customer',
+        read_only=True
+    )
+
+    items = OrderItemSerializer(
+        many=True,
+        read_only=True
+    )
+
+    payments = PaymentSerializer(
+        many=True,
+        read_only=True
+    )
+
+    user_name = serializers.SerializerMethodField()
+
+    due_amount = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
+
+    amount_paid = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
 
     class Meta:
-        model            = Order
-        fields           = '__all__'
-        read_only_fields = ['order_id', 'deposit_date', 'total_amount', 'amount_paid']
+        model = Order
+        fields = '__all__'
+        # These fields are generated or calculated by the backend
+        read_only_fields = [
+            'order_id',
+            'deposit_date',
+            'total_amount',
+            'amount_paid'
+        ]
 
-    @staticmethod
-    def get_user_name(obj):
+    def get_user_name(self, obj):
+        """
+        Return full name of the user who created the order.
+        """
         if obj.user:
             return f"{obj.user.first_name} {obj.user.last_name}"
         return None
 
-    def create(self, validated_data):
-        """Generate id order item """
-        validated_data['order_id'] = self.generate_order_id()
-        validated_data['user']     = self.context['request'].user
-        return super().create(validated_data)
 
-    @staticmethod
-    def generate_order_id():
-        date       = timezone.now().strftime('%Y%m%d')
-        random_str = ''.join(random.choices(string.digits, k=4))
-        return f"CMD-{date}-{random_str}"
+class OrderCreateSerializer(serializers.ModelSerializer):
+    """
+    WRITE serializer for creating orders with nested items.
+    """
 
-class OrderCreateSerializers(serializers.ModelSerializer):
-    items = serializers.ListSerializer(child=serializers.DictField(), write_only=True)
+    items = OrderItemCreateSerializer(many=True)
 
     class Meta:
-        model  = Order
+        model = Order
         fields = ['customer', 'due_date', 'notes', 'items']
 
+    @transaction.atomic
     def create(self, validated_data):
-        items_data  = validated_data.pop('items')
+        """
+        Create an order and its related items atomically.
 
-        # Create order
+        If any error occurs, the entire transaction is rolled back.
+        """
+        items_data = validated_data.pop('items')
+        user = self.context['request'].user
+
+        # Create the order
         order = Order.objects.create(
             **validated_data,
-            order_id=self.generate_order_id(),
-            user=self.context['request'].user
-
+            order_id=generate_order_id(),
+            user=user
         )
 
-        # create items
         total_amount = 0
-        for item_data in items_data:
-            service    = Service.objects.get(id=item_data['service_id'])
-            quantity   = item_data['quantity']
+
+        # Create each order item
+        for item in items_data:
+            try:
+                service = Service.objects.get(id=item['service_id'])
+            except Service.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Service with id {item['service_id']} does not exist."
+                )
+
+            quantity = item['quantity']
             unit_price = service.price
+            total_price = unit_price * quantity
 
             OrderItem.objects.create(
                 order=order,
                 service=service,
                 quantity=quantity,
                 unit_price=unit_price,
-                total_price=unit_price * quantity,
-                description=item_data.get('description', '')
+                total_price=total_price,
+                description=item.get('description', '')
             )
-            total_amount += unit_price * quantity
-        # update total amount
+
+            total_amount += total_price
+
+        # Update order total amount
         order.total_amount = total_amount
-        order.save()
+        order.save(update_fields=['total_amount'])
 
         return order
-
-    @staticmethod
-    def generate_order_id():
-        date       = timezone.now().strftime('%Y%m%d')
-        random_str = ''.join(random.choices(string.digits, k=4))
-        return f"CMD-{date}-{random_str}"

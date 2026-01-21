@@ -67,7 +67,7 @@ class OrderItemInline(admin.TabularInline):
     extra = 1
 
     # Fields to display in the inline form
-    fields = ['service', 'quantity', 'price']
+    fields = ['service', 'quantity', 'unit_price']
 
     # Enable autocomplete for service field (useful for many services)
     autocomplete_fields = ['service']
