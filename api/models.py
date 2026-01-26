@@ -73,9 +73,6 @@ class CategoryServices(models.Model):
 class Service(models.Model):
     """Model representing a specific service offered by the laundry"""
 
-    # Explicit manager declaration (optional as it's default)
-    objects = models.Manager()
-
     # Relationship to parent category
     # CASCADE: If category is deleted, all its services are deleted
     category = models.ForeignKey(CategoryServices, on_delete=models.CASCADE, related_name="services")
@@ -152,6 +149,9 @@ class Order(models.Model):
 
     # User who created the order
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="orders")
+
+    # Some note for the order
+    notes = models.TextField(blank=True, default="")
 
     class Meta:
         # Database table configuration
@@ -238,7 +238,7 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
 
     # Payment method used
-    payment_mod = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
 
     # Automatic payment date and time
     payment_date = models.DateTimeField(auto_now_add=True)

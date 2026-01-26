@@ -121,10 +121,10 @@ class PaymentAdmin(admin.ModelAdmin):
     """Admin configuration for Payment model"""
 
     # Fields to display in the list view
-    list_display = ['order', 'amount', 'payment_mod', 'payment_date', 'user']
+    list_display = ['order', 'amount', 'payment_method', 'payment_date', 'user']
 
     # Filter options
-    list_filter = ['payment_mod', 'payment_date']
+    list_filter = ['payment_method', 'payment_date']
 
     # Searchable fields
     search_fields = ['order__order_id', 'reference']

@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
+from decimal import Decimal
+from django.contrib.auth import get_user_model
 import random
 import string
 
 from .models import (
-    User,
     Customer,
     CategoryServices,
     Service,
@@ -41,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
 
     class Meta:
-        model = User
+        User = get_user_model()
         fields = ['id', 'username', 'first_name', 'last_name']
         read_only_fields = ['id']
 
@@ -234,11 +235,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
     user_name = serializers.SerializerMethodField()
 
-    due_amount = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        read_only=True
-    )
+    due_amount = serializers.SerializerMethodField()
+    def get_due_amount(self, obj):
+        return obj.total_amount - obj.amount_paid
 
     amount_paid = serializers.DecimalField(
         max_digits=10,
@@ -279,24 +278,17 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        """
-        Create an order and its related items atomically.
-
-        If any error occurs, the entire transaction is rolled back.
-        """
         items_data = validated_data.pop('items')
         user = self.context['request'].user
 
-        # Create the order
         order = Order.objects.create(
             **validated_data,
             order_id=generate_order_id(),
             user=user
         )
 
-        total_amount = 0
+        total_amount = Decimal('0.00')
 
-        # Create each order item
         for item in items_data:
             try:
                 service = Service.objects.get(id=item['service_id'])
@@ -320,7 +312,6 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 
             total_amount += total_price
 
-        # Update order total amount
         order.total_amount = total_amount
         order.save(update_fields=['total_amount'])
 
