@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from django.utils import timezone
 from django.db import transaction
 from decimal import Decimal
 from django.contrib.auth import get_user_model
-import random
-import string
+from .utils import generate_order_id
+from django.utils import timezone
+
 
 from .models import (
     Customer,
@@ -14,21 +14,6 @@ from .models import (
     OrderItem,
     Payment
 )
-
-# ============================================================
-# UTILITY FUNCTIONS
-# ============================================================
-
-def generate_order_id():
-    """
-    Generate a unique order identifier.
-
-    Format example:
-    CMD-20260121-4829
-    """
-    date_part = timezone.now().strftime('%Y%m%d')
-    random_part = ''.join(random.choices(string.digits, k=4))
-    return f"CMD-{date_part}-{random_part}"
 
 
 # ============================================================
@@ -263,6 +248,13 @@ class OrderSerializer(serializers.ModelSerializer):
         if obj.user:
             return f"{obj.user.first_name} {obj.user.last_name}"
         return None
+
+    def validate(self, data):
+        if data.get('due_date') and data['due_date'] <= timezone.now():
+            raise serializers.ValidationError({
+                'due_date': 'La date d\'échéance doit être dans le futur.'
+            })
+        return data
 
 
 class OrderCreateSerializer(serializers.ModelSerializer):

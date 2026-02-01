@@ -1,8 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from django.utils.timezone import now
+from django.utils import timezone
 from decimal import Decimal
+import random
+
+import uuid
 
 
 class Customer(models.Model):
@@ -112,7 +117,6 @@ class Service(models.Model):
 class Order(models.Model):
     """Model representing a laundry order"""
 
-    # Available order status choices
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('IN_PROGRESS', 'In Progress'),
@@ -121,64 +125,84 @@ class Order(models.Model):
         ('CANCELLED', 'Cancelled'),
     ]
 
-    # Customer who placed the order
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="orders")
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="orders"
+    )
 
-    # Unique order identifier
-    # IMPORTANT: Should be auto-generated to avoid duplicates
-    order_id = models.CharField(max_length=30, unique=True)
+    # 🔥 Numéro de commande lisible
+    order_id = models.CharField(
+        max_length=25,
+        unique=True,
+        editable=False,
+        blank=True
+    )
 
-    # Automatic deposit date on creation
     deposit_date = models.DateTimeField(auto_now_add=True)
-
-    # Due date for order completion
-    # TODO: Add validation to ensure due_date > deposit_date
     due_date = models.DateTimeField()
-
-    # Actual pickup date (filled when customer collects)
     pickup_date = models.DateTimeField(null=True, blank=True)
 
-    # Current order status
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default='PENDING'
+    )
 
-    # Total order amount (sum of all OrderItems)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-    # Amount already paid (sum of related Payments)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-    # User who created the order
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="orders")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="orders"
+    )
 
-    # Some note for the order
     notes = models.TextField(blank=True, default="")
 
     class Meta:
-        # Database table configuration
         db_table = "orders"
-        # Order by most recent deposit date first
         ordering = ["-deposit_date"]
-        # Admin panel display names
         verbose_name = "Order"
         verbose_name_plural = "Orders"
 
     def __str__(self):
-        # Format: "Order NUMBER - CustomerName"
-        # FIX: Remove leading space before "Order"
-        return f" Order {self.order_id} - {self.customer}"
+        return f"Order {self.order_id} - {self.customer}"
 
     @property
     def balance(self):
-        """Calculate remaining balance to pay"""
-        # Remaining amount = total - paid
         return self.total_amount - self.amount_paid
 
     @property
     def is_paid(self):
-        """Check if order is fully paid"""
-        # True if paid amount >= total amount
         return self.amount_paid >= self.total_amount
 
+    def clean(self):
+        """Validation personnalisée"""
+        if self.due_date and self.deposit_date:
+            if self.due_date <= self.deposit_date:
+                raise ValidationError({
+                    'due_date': "La date d'échéance doit être après la date de dépôt."
+                })
+
+    def save(self, *args, **kwargs):
+        """
+        Génère automatiquement un numéro de commande :
+        CMD-YYYYMMDD-XXXX
+        """
+        if not self.order_id:
+            date_str = timezone.now().strftime("%Y%m%d")
+
+            while True:
+                random_part = random.randint(1000, 9999)
+                order_id = f"CMD-{date_str}-{random_part}"
+
+                if not Order.objects.filter(order_id=order_id).exists():
+                    self.order_id = order_id
+                    break
+
+        super().save(*args, **kwargs)
 
 class OrderItem(models.Model):
     """Line item in an order (link between Order and Service)"""

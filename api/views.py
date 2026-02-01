@@ -258,8 +258,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             )
 
             # Update the total amount paid for the order
-            order.amount_paid += payment.amount
-            order.save(update_fields=['amount_paid'])
+            Order.objects.filter(pk=order.pk).update(
+                amount_paid=F('amount_paid') + payment.amount
+            )
+            order.refresh_from_db()
 
             return Response(
                 PaymentSerializer(payment).data,
