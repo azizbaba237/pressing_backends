@@ -14,7 +14,8 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+#ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = ['pressingbackends.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -73,15 +74,22 @@ WSGI_APPLICATION = 'pressing.wsgi.application'
 
 # Database
 # MySQL
+#DATABASES = {
+#    "default": {
+#        "ENGINE": "django.db.backends.mysql",
+#        "NAME": os.getenv("MYSQL_DATABASE", "pressing_dbs"),
+#        "USER": os.getenv("MYSQL_USER", "pressing_user"),
+#        "PASSWORD": os.getenv("MYSQL_PASSWORD", "pressing_pass_123"),
+#        "HOST": os.getenv("MYSQL_HOST", "db"),
+#        "PORT": os.getenv("MYSQL_PORT", "3306"),
+#        "OPTIONS": {"charset": "utf8mb4"},
+#    }
+#}
+# Configuration SQLite
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE", "pressing_dbs"),
-        "USER": os.getenv("MYSQL_USER", "pressing_user"),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD", "pressing_pass_123"),
-        "HOST": os.getenv("MYSQL_HOST", "db"),
-        "PORT": os.getenv("MYSQL_PORT", "3306"),
-        "OPTIONS": {"charset": "utf8mb4"},
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -103,7 +111,11 @@ SIMPLE_JWT = {
 
 
 # CORS
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS","http://localhost:3000").split(",")
+#CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS","http://localhost:3000").split(",")
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Pour le développement local
+    "https://votre-app.vercel.app",  # Votre URL Vercel (à modifier après déploiement)
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -157,3 +169,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://pressingbackends.pythonanywhere.com',
+    'https://votre-app.vercel.app',
+]
