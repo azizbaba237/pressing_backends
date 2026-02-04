@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, F
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 
 from .models import (
     Customer,
@@ -249,7 +250,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         Add a payment to a specific order.
         """
         order = self.get_object()
-        serializer = PaymentSerializer(data=request.data)
+        serializer = PaymentSerializer(data={
+            **request.data,
+            "amount": Decimal(request.data.get("amount", "0"))
+        })
 
         if serializer.is_valid():
             payment = serializer.save(

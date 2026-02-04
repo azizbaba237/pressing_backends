@@ -176,18 +176,22 @@ class PaymentSerializer(serializers.ModelSerializer):
     Displays user full name instead of raw user ID.
     """
 
-    user_name = serializers.SerializerMethodField()
+    user_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Payment
-        fields = '__all__'
-        # payment_date is set automatically
-        read_only_fields = ['payment_date']
+        fields = [
+            'id',
+            'amount',
+            'payment_method',
+            'reference',
+            'notes',
+            'payment_date',
+            'user_name',
+        ]
+        read_only_fields = ['id', 'payment_date', 'user_name']
 
     def get_user_name(self, obj):
-        """
-        Return the full name of the user who processed the payment.
-        """
         if obj.user:
             return f"{obj.user.first_name} {obj.user.last_name}"
         return None

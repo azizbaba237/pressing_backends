@@ -14,8 +14,8 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-#ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
-ALLOWED_HOSTS = ['pressingbackends.pythonanywhere.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+#ALLOWED_HOSTS = ['pressingbackends.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -113,7 +113,7 @@ SIMPLE_JWT = {
 # CORS
 #CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS","http://localhost:3000").split(",")
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Pour le développement local
+    "http://localhost:5173",  # Pour le développement local
     "https://votre-app.vercel.app",  # Votre URL Vercel (à modifier après déploiement)
 ]
 

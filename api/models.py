@@ -268,7 +268,7 @@ class Payment(models.Model):
     payment_date = models.DateTimeField(auto_now_add=True)
 
     # Transaction reference/number
-    reference = models.CharField(max_length=100, blank=True)
+    reference = models.CharField(max_length=100, blank=True, unique=True)
 
     # Additional payment notes
     notes = models.TextField(blank=True)
@@ -284,6 +284,13 @@ class Payment(models.Model):
         # Admin panel display names
         verbose_name = "Payment"
         verbose_name_plural = "Payments"
+
+    def save(self, *args, **kwargs):
+        # Get référence if empty
+        if not self.reference:
+            last_id = Payment.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
+            self.reference = f"PAY-{last_id + 1}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         # Format: "Payment AMOUNT FCFA - Order NUMBER"
