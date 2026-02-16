@@ -9,7 +9,6 @@ import random
 
 import uuid
 
-
 class Customer(models.Model):
     """Model representing a laundry customer"""
 
@@ -48,7 +47,6 @@ class Customer(models.Model):
         # Human-readable representation for admin and debugging
         return f"{self.first_name} {self.last_name}"
 
-
 class CategoryServices(models.Model):
     """Service categories (Dry Cleaning, Ironing, etc.)"""
 
@@ -73,7 +71,6 @@ class CategoryServices(models.Model):
     def __str__(self):
         # Simple name display
         return self.name
-
 
 class Service(models.Model):
     """Model representing a specific service offered by the laundry"""
@@ -113,8 +110,7 @@ class Service(models.Model):
         # Format: "CategoryName ServiceName"
         return f"{self.category.name} {self.name}"
 
-
-class Order(models.Model):
+class  Order(models.Model):
     """Model representing a laundry order"""
 
     STATUS_CHOICES = [
@@ -242,7 +238,6 @@ class OrderItem(models.Model):
         # Calculate total before saving
         self.total_price = self.unit_price * self.quantity
         super().save(*args, **kwargs)
-
 
 class Payment(models.Model):
     """Model representing a payment for an order"""

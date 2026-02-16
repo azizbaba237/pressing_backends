@@ -111,7 +111,6 @@ SIMPLE_JWT = {
 
 
 # CORS
-#CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS","http://localhost:3000").split(",")
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Pour le développement local
     "https://votre-app.vercel.app",  # Votre URL Vercel (à modifier après déploiement)

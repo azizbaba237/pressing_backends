@@ -177,6 +177,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     """
 
     user_name = serializers.SerializerMethodField(read_only=True)
+    order_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Payment
@@ -187,13 +188,22 @@ class PaymentSerializer(serializers.ModelSerializer):
             'reference',
             'notes',
             'payment_date',
+            'order_id',
             'user_name',
         ]
-        read_only_fields = ['id', 'payment_date', 'user_name']
+        read_only_fields = ['id', 'payment_date', 'order_id', 'user_name']
 
     def get_user_name(self, obj):
         if obj.user:
-            return f"{obj.user.first_name} {obj.user.last_name}"
+            full_name = obj.user.get_full_name().strip()
+            if full_name:
+                return full_name
+            return obj.user.username
+        return None
+
+    def get_order_id(self, obj):
+        if obj.order:
+            return obj.order.order_id
         return None
 
 

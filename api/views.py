@@ -316,7 +316,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     ViewSet used to manage payments.
     """
 
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.select_related("user", "order")
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
 
