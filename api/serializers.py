@@ -31,7 +31,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'first_name', 'last_name']
         read_only_fields = ['id']
 
-
 # ============================================================
 # CUSTOMER SERIALIZER
 # ============================================================
@@ -71,7 +70,6 @@ class CustomerSerializer(serializers.ModelSerializer):
             )
         return value
 
-
 # ============================================================
 # CATEGORY SERVICES SERIALIZER
 # ============================================================
@@ -93,7 +91,6 @@ class CategoryServicesSerializer(serializers.ModelSerializer):
         Return the number of active services in this category.
         """
         return obj.services.filter(actif=True).count()
-
 
 # ============================================================
 # SERVICE SERIALIZER
@@ -151,7 +148,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
         # Prices are calculated by the backend
         read_only_fields = ['unit_price', 'total_price']
 
-
 class OrderItemCreateSerializer(serializers.Serializer):
     """
     WRITE serializer for creating order items.
@@ -164,7 +160,6 @@ class OrderItemCreateSerializer(serializers.Serializer):
         required=False,
         allow_blank=True
     )
-
 
 # ============================================================
 # PAYMENT SERIALIZER
@@ -205,7 +200,6 @@ class PaymentSerializer(serializers.ModelSerializer):
         if obj.order:
             return obj.order.order_id
         return None
-
 
 # ============================================================
 # ORDER SERIALIZERS
@@ -269,7 +263,6 @@ class OrderSerializer(serializers.ModelSerializer):
                 'due_date': 'La date d\'échéance doit être dans le futur.'
             })
         return data
-
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     """

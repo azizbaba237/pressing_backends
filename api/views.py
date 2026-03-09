@@ -121,7 +121,6 @@ class CategoryServicesViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-
 # ============================================================
 # SERVICE VIEWSET
 # ============================================================
@@ -305,7 +304,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         }
 
         return Response(stats)
-
 
 # ============================================================
 # PAYMENT VIEWSET
