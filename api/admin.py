@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, CategoryServices, Service, Order, OrderItem, Payment
+from .models import Customer, CategoryServices, Service, Order, OrderItem, Payment, UserProfile
 
 
 @admin.register(Customer)
@@ -137,3 +137,13 @@ class PaymentAdmin(admin.ModelAdmin):
 
     # Enable autocomplete for order field
     autocomplete_fields = ['order']
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    """Admin configuration for UserProfile model"""
+
+    list_display = ['user', 'role', 'phone', 'actif']
+    list_filter = ['role', 'actif']
+    search_fields = ['user__username', 'user__email', 'phone']
+    raw_id_fields = ['user', 'customer']

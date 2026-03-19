@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.timezone import now
 from django.utils import timezone
 from decimal import Decimal
@@ -290,3 +292,41 @@ class Payment(models.Model):
     def __str__(self):
         # Format: "Payment AMOUNT FCFA - Order NUMBER"
         return f"Payment {self.amount} FCFA - Order {self.order.order_id}"
+
+class UserProfile(models.Model):
+    """Profil utilisateur pour gérer les rôles"""
+    ROLE_CHOICES = [
+        ('ADMIN', 'Administrator'),
+        ('EMPLOYEE', 'Employe'),
+        ('CUSTOMER', 'Customer'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CUSTOMER')
+    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, null=True, blank=True, related_name='user_profile')
+    phone = models.CharField(max_length=20, blank=True)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'user_profiles'
+        verbose_name = 'Profil utilisateur'
+        verbose_name_plural = 'Profils utilisateurs'
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+
+# Signal pour créer automatiquement un profil lors de la création d'un utilisateur
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        # Vérifier si c'est un superuser
+        if instance.is_superuser or instance.is_staff:
+            UserProfile.objects.create(user=instance, role='ADMIN')
+        else:
+            UserProfile.objects.create(user=instance, role='CUSTOMER')
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
